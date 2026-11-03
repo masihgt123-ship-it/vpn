@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d1117">
+  <title>VLESS Hub</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px 16px; min-height: 100vh;
+      background: #0d1117; color: #e6edf3;
+      font-family: system-ui, sans-serif;
+    }
+    main { max-width: 560px; margin: 30px auto; }
+    header { text-align: center; margin-bottom: 24px; }
+    h1 { font-size: 23px; }
+    header p, .hint { color: #9da7b3; line-height: 1.8; }
+    .card {
+      background: #161b22; border: 1px solid #30363d;
+      border-radius: 18px; padding: 20px;
+    }
+    button {
+      width: 100%; margin-top: 12px; padding: 15px;
+      border: 1px solid #30363d; border-radius: 12px;
+      background: #21262d; color: #e6edf3;
+      font-size: 15px; font-weight: 700;
+    }
+    button.primary { background: #238636; border-color: #238636; }
+    textarea {
+      display: block; width: 100%; min-height: 110px; margin-top: 14px;
+      padding: 12px; border-radius: 10px; border: 1px solid #30363d;
+      background: #0d1117; color: #7ee787; direction: ltr;
+      resize: vertical; font: 13px monospace;
+    }
+    #status { margin-top: 14px; text-align: center; line-height: 1.7; }
+    .hint { font-size: 13px; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>سرورهای V2Ray / VLESS</h1>
+      <p>دریافت فهرست عمومی و انتقال آن به برنامهٔ VPN</p>
+    </header>
+
+    <section class="card">
+      <button class="primary" id="loadBtn">دریافت کانفیگ‌ها</button>
+      <div id="status" role="status">برای شروع، دکمهٔ بالا را بزن.</div>
+      <textarea id="output" readonly placeholder="نتیجه اینجا نمایش داده می‌شود"></textarea>
+      <button id="copyBtn">کپی متن</button>
+
+      <p class="hint">
+        بعد از کپی، v2rayNG را باز کن و از منوی برنامه گزینهٔ واردکردن کانفیگ از کلیپ‌بورد را بزن.
+        کانفیگ‌های عمومی ممکن است از کار افتاده باشند؛ فعال‌بودنشان تضمین‌شده نیست.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const sourceUrl =
+      'https://raw.githubusercontent.com/barry-far/V2ray-config/main/Splitted-By-Protocol/vless.txt';
+
+    const statusBox = document.getElementById('status');
+    const output = document.getElementById('output');
+
+    document.getElementById('loadBtn').addEventListener('click', loadConfigs);
+
+    async function loadConfigs() {
+      statusBox.textContent = 'در حال دریافت…';
+      try {
+        const response = await fetch(sourceUrl);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+
+        const text = await response.text();
+        const configs = text
+          .split(/\r?\n/)
+          .map(line => line.trim())
+          .filter(line => line.startsWith('vless://'))
+          .slice(0, 20)
+          .join('\n');
+
+        if (!configs) throw new Error('در پاسخ کانفیگ VLESS پیدا نشد.');
+
+        output.value = configs;
+        statusBox.textContent = 'کانفیگ‌ها دریافت شدند؛ برای استفاده آن‌ها را کپی کن.';
+      } catch (error) {
+        output.value = sourceUrl;
+        statusBox.textContent =
+          'دریافت خودکار انجام نشد (' + error.message +
+          '). لینک منبع در کادر آمده؛ ممکن است شبکه دسترسی به گیت‌هاب را مسدود کرده باشد.';
+      }
+    }
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = output.value;
+      if (!text) {
+        statusBox.textContent = 'اول دکمهٔ دریافت کانفیگ‌ها را بزن.';
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        statusBox.textContent = 'متن کپی شد.';
+      } catch {
+        output.focus();
+        output.select();
+        const copied = document.execCommand('copy');
+        statusBox.textContent = copied
+          ? 'متن کپی شد.'
+          : 'کپی خودکار ممکن نشد؛ متن داخل کادر را انتخاب و کپی کن.';
+      }
+    });
+  </script>
+</body>
+</html>
